@@ -154,8 +154,6 @@ erDiagram
         varchar referensi
         timestamptz dibuat_pada
     }
-**⏬ Lanjut paste Bagian 3 di bawahnya (jangan kasih enter tambahan)**
-
 ---
 
 ## 📦 Bagian 3 dari 3
