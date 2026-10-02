@@ -1,123 +1,180 @@
 <div align="center">
-
-# 🎵 Sistem Pendapatan & Piutang — Salwa Music
-
-**Sistem administrasi kursus musik berbasis web untuk mengelola data siswa, katalog program, tagihan bulanan, pencatatan pembayaran, dan pemantauan piutang secara real-time.**
-
-[![Live Demo](https://img.shields.io/badge/🌐_Live_Demo-yunistyasm.github.io-142D4C?style=for-the-badge)](https://yunistyasm.github.io/Sistem-Pendapatan-Piutang-Kursus-Musik-Salwa/)
-[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-336791?style=for-the-badge&logo=postgresql&logoColor=white)](https://www.postgresql.org/)
-[![Supabase](https://img.shields.io/badge/Supabase-3ECF8E?style=for-the-badge&logo=supabase&logoColor=white)](https://supabase.com/)
-[![GitHub Pages](https://img.shields.io/badge/GitHub_Pages-181717?style=for-the-badge&logo=github&logoColor=white)](https://pages.github.com/)
-
-![Status](https://img.shields.io/badge/Status-Prototipe_/_Internal-BF9E5F?style=flat-square)
-![Snapshot](https://img.shields.io/badge/Snapshot-1_Oktober_2026-8B6B2E?style=flat-square)
-![License](https://img.shields.io/badge/License-Internal-5A7358?style=flat-square)
-
+  <img src="https://img.shields.io/badge/Salwa%20Music-Admin%20System-1C2A4D?style=for-the-badge" alt="Salwa Music Admin System" />
+  <img src="https://img.shields.io/badge/Status-Prototype%20Ready-7A9B7E?style=for-the-badge" alt="Status" />
+  <img src="https://img.shields.io/badge/Frontend-HTML%20%2F%20CSS%20%2F%20JS-C89F65?style=for-the-badge" alt="Frontend" />
+  <img src="https://img.shields.io/badge/Database-Supabase-4F6D90?style=for-the-badge" alt="Database" />
 </div>
 
----
+<div style="background: linear-gradient(135deg, #1c2a4d 0%, #2b3a67 58%, #1c2a4d 100%); border-radius: 22px; padding: 32px 28px; margin: 22px 0 20px 0; color: #f7f9fc; box-shadow: 0 18px 42px rgba(28,42,77,.18); border: 1px solid rgba(255,255,255,.08);">
+  <p style="margin:0; color:#d9bfd0; font-size:12px; letter-spacing:0.18em; text-transform:uppercase;">Creative finance system</p>
+  <h1 style="margin:14px 0 8px; color:#f7f9fc; font-size:42px; line-height:1.05;">Salwa Music</h1>
+  <p style="margin:0; color:#e7edf8; font-size:22px; letter-spacing:0.02em;">Sistem Pendapatan & Piutang Kursus Musik</p>
+  <p style="margin:18px 0 0; max-width:760px; color:#edf4ff; line-height:1.75; font-size:16px;">
+    Platform administrasi keuangan untuk lembaga kursus musik dengan fokus pada pengelolaan siswa, program, tagihan, pembayaran, dan laporan pendapatan secara rapi dan profesional.
+  </p>
+</div>
 
-## 📖 Tentang Proyek
+<div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:18px; margin:22px 0 30px;">
+  <div style="background:#fff; border:1px solid #e7e0d6; border-radius:18px; padding:20px 20px 18px; box-shadow:0 10px 24px rgba(28,42,77,.05);">
+    <div style="font-size:11px; letter-spacing:0.14em; text-transform:uppercase; color:#8b735a; margin-bottom:10px;">Overview</div>
+    <div style="font-size:30px; font-weight:800; color:#1c2a4d; line-height:1.1;">Dashboard</div>
+    <p style="margin:10px 0 0; color:#5d6d7d; line-height:1.7;">Ringkasan pendapatan, piutang, siswa aktif, dan performa keuangan secara real-time.</p>
+  </div>
+  <div style="background:#fff; border:1px solid #e7e0d6; border-radius:18px; padding:20px 20px 18px; box-shadow:0 10px 24px rgba(28,42,77,.05);">
+    <div style="font-size:11px; letter-spacing:0.14em; text-transform:uppercase; color:#8b735a; margin-bottom:10px;">Finance</div>
+    <div style="font-size:30px; font-weight:800; color:#1c2a4d; line-height:1.1;">Receivables</div>
+    <p style="margin:10px 0 0; color:#5d6d7d; line-height:1.7;">Kelola tagihan, monitoring jatuh tempo, dan sisa tunggakan dengan kontrol yang lebih terstruktur.</p>
+  </div>
+  <div style="background:#fff; border:1px solid #e7e0d6; border-radius:18px; padding:20px 20px 18px; box-shadow:0 10px 24px rgba(28,42,77,.05);">
+    <div style="font-size:11px; letter-spacing:0.14em; text-transform:uppercase; color:#8b735a; margin-bottom:10px;">Operations</div>
+    <div style="font-size:30px; font-weight:800; color:#1c2a4d; line-height:1.1;">Administration</div>
+    <p style="margin:10px 0 0; color:#5d6d7d; line-height:1.7;">Mengatur program kursus, data siswa, pengaturan lembaga, serta aktivitas administrasi harian.</p>
+  </div>
+</div>
 
-**Salwa Music** adalah lembaga pendidikan musik yang menyelenggarakan kursus untuk 6 instrumen utama (Biola, Keyboard, Piano, Gitar, dan Vokal). Sistem ini dibangun untuk mengelola seluruh siklus keuangan kursus — mulai dari pendaftaran siswa, penerbitan tagihan bulanan, pencatatan pembayaran (termasuk cicilan), hingga pemantauan piutang secara real-time.
+## Identitas Penyusun
 
-Proyek ini dikembangkan sebagai bagian dari mata kuliah **Pengkodean dan Pemrograman** dengan fokus pada implementasi basis data relasional (PostgreSQL/Supabase) dan integritas data keuangan.
+<div style="background:#f9f6f0; border:1px solid #e9dfd0; border-radius:18px; padding:22px 20px; box-shadow:0 10px 24px rgba(28,42,77,.04); margin:20px 0 28px;">
+  <p style="margin:0 0 10px; color:#8b735a; font-size:11px; letter-spacing:0.14em; text-transform:uppercase;">Identity</p>
+  <p style="margin:6px 0; color:#1c2a4d; font-size:18px; font-weight:700;">YUNISTYA SALWA MAHARANI</p>
+  <p style="margin:8px 0; color:#465669; line-height:1.8;">
+    NIM: 12030124120042<br>
+    Mata Kuliah/Kelas: Pengkodean dan Pemrograman / D<br>
+    Dosen Pengampu: Dr. Totok Dewayanto, S.E., M.Si., Akt., CA<br>
+    Program Studi S1 Akuntansi<br>
+    Departemen Akuntansi<br>
+    Fakultas Ekonomika dan Bisnis<br>
+    Universitas Diponegoro
+  </p>
+</div>
 
----
+## Project Overview
 
-## ✨ Fitur Utama
+Sistem ini dibuat sebagai solusi manajemen keuangan dan operasional kursus musik dengan arsitektur frontend statis dan database Supabase. Fokus utamanya mencakup:
 
-<table>
-<tr>
-<td width="50%">
+- pencatatan data siswa yang mengikuti kursus
+- pengelolaan program kursus dan biaya bulanan
+- pembuatan tagihan sesuai periode pembelajaran
+- pencatatan pembayaran yang masuk
+- perhitungan sisa piutang otomatis
+- tampilan dashboard dan laporan keuangan yang terstruktur
+- pengingat tagihan melalui WhatsApp
 
-### 📊 Dashboard
-Ringkasan pendapatan bulan ini, total piutang, siswa aktif, dan program kursus tersedia dalam satu tampilan.
+## Key Features
 
-### 👥 Data Siswa
-Manajemen identitas siswa terdaftar — nama, kontak, email, tanggal daftar, dan status aktif.
+<div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:16px; margin:18px 0 28px;">
+  <div style="background:#f9f6f0; border:1px solid #e9dfd0; border-radius:16px; padding:18px 18px 16px;">
+    <strong style="display:block; color:#1c2a4d; margin-bottom:8px;">Dashboard & analytics</strong>
+    <span style="color:#596878; line-height:1.7;">Menyajikan ringkasan pendapatan, produk kursus, dan posisi piutang dalam satu tampilan.</span>
+  </div>
+  <div style="background:#f9f6f0; border:1px solid #e9dfd0; border-radius:16px; padding:18px 18px 16px;">
+    <strong style="display:block; color:#1c2a4d; margin-bottom:8px;">Student management</strong>
+    <span style="color:#596878; line-height:1.7;">Data siswa dikelola secara terpisah untuk memudahkan monitoring status dan riwayat kursus.</span>
+  </div>
+  <div style="background:#f9f6f0; border:1px solid #e9dfd0; border-radius:16px; padding:18px 18px 16px;">
+    <strong style="display:block; color:#1c2a4d; margin-bottom:8px;">Billing & receivables</strong>
+    <span style="color:#596878; line-height:1.7;">Tagihan dibuat secara otomatis dan saldo tunggakan dihitung sesuai pembayaran yang masuk.</span>
+  </div>
+  <div style="background:#f9f6f0; border:1px solid #e9dfd0; border-radius:16px; padding:18px 18px 16px;">
+    <strong style="display:block; color:#1c2a4d; margin-bottom:8px;">Payments & reminders</strong>
+    <span style="color:#596878; line-height:1.7;">Pencatatan pembayaran dibatasi sesuai total tagihan, dengan pengingat otomatis untuk yang belum lunas.</span>
+  </div>
+</div>
 
-### 🎼 Program Kursus
-Katalog 6 program musik dengan tarif bulanan, durasi sesi, dan instrumen.
+## System Modules
 
-</td>
-<td width="50%">
+- Dashboard ringkasan pendapatan dan piutang
+- Manajemen data siswa
+- Manajemen program kursus
+- Pembuatan dan pengelolaan tagihan
+- Pencatatan pembayaran dengan pembatasan total pembayaran per tagihan
+- Laporan pendapatan bulanan dan posisi tunggakan
+- Notifikasi tagihan yang jatuh tempo
+- Pengingat melalui WhatsApp untuk tagihan yang belum dibayar
+- Pengaturan profil lembaga dan data rekening
 
-### 📄 Tagihan
-Penerbitan tagihan bulanan per siswa dan program, dilengkapi tanggal jatuh tempo.
+## Folder Structure
 
-### 💰 Pembayaran
-Pencatatan penerimaan kas dengan metode Tunai, Transfer Bank, QRIS, atau Lainnya.
+```text
+Sistem Pendapatan & Piutang Kursus Musik Salwa/
+├── backend/
+│   └── config.js
+├── database/
+│   └── database.sql
+├── frontend/
+│   ├── index.html
+│   ├── script.js
+│   └── style.css
+├── README.md
+├── Deskripsi_Skema_Sistem_Pendapatan_Piutang.docx
+├── Laporan Pendapatan & Piutang - Salwa Music.pdf
+├── salwa_music_laporan_pendapatan_piutang (1).pdf
+└── ...
+```
 
-### 📈 Laporan
-Rekap pendapatan, piutang berjalan, dan status tagihan (Belum Dibayar, Cicilan, Lunas, Lewat Jatuh Tempo).
+## Tech Stack
 
-</td>
-</tr>
-</table>
+| Component | Stack |
+| --- | --- |
+| Frontend | HTML, CSS, JavaScript |
+| Database | Supabase |
+| Charts | Chart.js |
+| CSV | Papa Parse |
+| Design system | Custom dashboard UI |
 
----
+## Database Preparation
 
-## 🛠️ Teknologi
+1. Buat project baru di Supabase.
+2. Buka SQL Editor.
+3. Jalankan isi file `database/database.sql`.
+4. Pastikan tabel berikut tersedia:
+   - `siswa`
+   - `program_kursus`
+   - `tagihan`
+   - `pembayaran`
 
-| Layer | Teknologi |
-|---|---|
-| **Frontend** | HTML5, CSS3, Vanilla JavaScript |
-| **Database** | PostgreSQL (via Supabase) |
-| **Hosting** | GitHub Pages |
-| **Charts** | Inline SVG (custom) |
-| **Auth (Rencana)** | Supabase Auth |
+## Connection Configuration
 
----
+Edit file `backend/config.js` lalu sesuaikan URL project dan kunci publik Supabase Anda:
 
-## 🗄️ Arsitektur Basis Data
+```js
+const SUPABASE_URL = "https://your-project.supabase.co";
+const SUPABASE_KEY = "your-publishable-key";
+```
 
-### Diagram Relasi Entitas (ERD)
+## Run the Application
 
-```mermaid
-erDiagram
-    SISWA ||--o{ TAGIHAN : "memiliki"
-    PROGRAM_KURSUS ||--o{ TAGIHAN : "diacu"
-    TAGIHAN ||--o{ PEMBAYARAN : "menerima"
+Karena aplikasi ini bersifat frontend statis, Anda perlu menjalankannya melalui server lokal agar dapat diakses dengan benar.
 
-    SISWA {
-        bigint id_siswa PK
-        varchar nama_siswa
-        varchar no_telepon
-        varchar email
-        date tanggal_daftar
-        boolean aktif
-        timestamptz dibuat_pada
-    }
+### Option 1: Using Python
 
-    PROGRAM_KURSUS {
-        bigint id_program PK
-        varchar nama_program
-        varchar instrumen
-        smallint durasi_menit
-        numeric biaya_bulanan
-        boolean aktif
-        timestamptz dibuat_pada
-    }
+```bash
+cd "d:\Sistem Pendapatan & Piutang Kursus Musik Salwa"
+python -m http.server 8000
+```
 
-    TAGIHAN {
-        bigint id_tagihan PK
-        bigint id_siswa FK
-        bigint id_program FK
-        varchar periode
-        date tanggal_terbit
-        date tanggal_jatuh_tempo
-        numeric jumlah_tagihan
-        text keterangan
-        timestamptz dibuat_pada
-    }
+Then open:
 
-    PEMBAYARAN {
-        bigint id_pembayaran PK
-        bigint id_tagihan FK
-        date tanggal_bayar
-        numeric jumlah_bayar
-        varchar metode
-        varchar referensi
-        timestamptz dibuat_pada
-    }
+```text
+http://localhost:8000/frontend/
+```
+
+### Option 2: Using VS Code Live Server
+
+- Buka folder proyek di VS Code
+- Jalankan extension Live Server
+- Akses halaman `frontend/index.html`
+
+## Important Notes
+
+- File `backend/config.js` hanya digunakan untuk URL dan key publik Supabase.
+- Aplikasi ini dibuat untuk kebutuhan demo/prototype tanpa login.
+- Untuk penggunaan produksi, disarankan menambahkan autentikasi, RBAC, dan keamanan database yang lebih ketat.
+
+## Project Status
+
+Project ini siap digunakan sebagai sistem pendukung operasional lembaga kursus musik dengan fokus pada pengelolaan pendapatan, piutang, dan administrasi keuangan secara cepat, tertata, dan profesional.
+
+## License
+
+Proyek ini dibuat untuk kebutuhan administrasi internal Salwa Music dan bersifat internal/prototype.
