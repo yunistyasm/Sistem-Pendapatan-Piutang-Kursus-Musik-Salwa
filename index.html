@@ -75,7 +75,6 @@
             <div id="paymentPreview" class="activity-list"></div>
           </section>
         </div>
-        <div class="quick-actions"><div><strong>Catat aktivitas baru</strong><span>Pilih tindakan untuk memperbarui administrasi.</span></div><button class="secondary-btn" id="quickInvoice">＋ Buat tagihan</button><button class="primary-btn" id="quickPayment">＋ Catat pembayaran</button></div>
       </section>
 
       <section id="siswa" class="page">
@@ -90,18 +89,18 @@
 
       <section id="tagihan" class="page">
         <div class="section-toolbar"><div><p class="eyebrow">PENDAPATAN & PIUTANG</p><h2>Tagihan</h2><p class="muted">Tagihan kursus dan sisa pembayaran setiap siswa.</p></div><button class="primary-btn" id="addTagihanBtn">＋ Buat tagihan</button></div>
-        <section class="content-panel"><div class="table-tools"><label class="search-box"><span aria-hidden="true">⌕</span><input id="searchTagihan" placeholder="Cari siswa atau program" aria-label="Cari tagihan"></label><select id="filterTagihan" class="filter-select" aria-label="Filter status tagihan"><option value="semua">Semua status</option><option value="Belum dibayar">Belum dibayar</option><option value="Sebagian">Sebagian</option><option value="Lunas">Lunas</option></select></div><div id="invoiceBulkBar" class="bulk-action-bar hidden"><span id="selectedInvoiceCount">0 tagihan dipilih</span><button class="secondary-btn" id="sendBulkReminders" type="button">Kirim pengingat via WhatsApp</button><button class="text-button" id="clearInvoiceSelection" type="button">Batal pilih</button></div><div class="table-wrap"><table><thead><tr><th><input id="selectAllInvoices" type="checkbox" aria-label="Pilih semua tagihan bersaldo"></th><th>No. tagihan</th><th>Siswa</th><th>Periode</th><th>Jatuh tempo</th><th>Nilai</th><th>Sisa</th><th>Status</th><th>Aksi</th></tr></thead><tbody id="tagihanTable"></tbody></table></div></section>
+        <section class="content-panel"><div class="table-tools"><label class="search-box"><span aria-hidden="true">⌕</span><input id="searchTagihan" placeholder="Cari siswa atau program" aria-label="Cari tagihan"></label><select id="filterTagihan" class="filter-select" aria-label="Filter status tagihan"><option value="semua">Semua status</option><option value="Belum dibayar">Belum dibayar</option><option value="Sebagian">Sebagian</option><option value="Telat">Telat</option><option value="Lunas">Lunas</option></select></div><div id="invoiceBulkBar" class="bulk-action-bar hidden"><span id="selectedInvoiceCount">0 tagihan dipilih</span><button class="secondary-btn" id="sendBulkReminders" type="button">Kirim pengingat via WhatsApp</button><button class="text-button" id="clearInvoiceSelection" type="button">Batal pilih</button></div><div class="table-wrap"><table><thead><tr><th><input id="selectAllInvoices" type="checkbox" aria-label="Pilih semua tagihan bersaldo"></th><th>No. tagihan</th><th>Siswa</th><th>Periode</th><th>Jatuh tempo</th><th>Nilai</th><th>Sisa</th><th>Status</th><th>Aksi</th></tr></thead><tbody id="tagihanTable"></tbody></table></div></section>
       </section>
 
       <section id="pembayaran" class="page">
         <div class="section-toolbar"><div><p class="eyebrow">PENERIMAAN KAS</p><h2>Pembayaran</h2><p class="muted">Riwayat pembayaran yang telah diterima.</p></div><button class="primary-btn" id="addPembayaranBtn">＋ Catat pembayaran</button></div>
-        <section class="content-panel"><div class="table-tools payment-tools"><label class="search-box"><span aria-hidden="true">⌕</span><input id="searchPembayaran" placeholder="Cari siswa atau referensi" aria-label="Cari pembayaran"></label><label class="date-filter">Dari<input id="paymentDateFrom" type="date" aria-label="Tanggal awal pembayaran"></label><label class="date-filter">Sampai<input id="paymentDateTo" type="date" aria-label="Tanggal akhir pembayaran"></label></div><p id="paymentFilteredTotal" class="table-total"></p><div class="table-wrap"><table><thead><tr><th>Tanggal</th><th>Siswa</th><th>No. tagihan</th><th>Metode</th><th>Referensi</th><th>Jumlah</th><th>Aksi</th></tr></thead><tbody id="pembayaranTable"></tbody></table></div></section>
+        <section class="content-panel"><div class="table-tools payment-tools"><label class="search-box"><span aria-hidden="true">⌕</span><input id="searchPembayaran" placeholder="Cari siswa atau referensi" aria-label="Cari pembayaran"></label><label class="date-filter">Dari<input id="paymentDateFrom" type="date" aria-label="Tanggal awal pembayaran"></label><label class="date-filter">Sampai<input id="paymentDateTo" type="date" aria-label="Tanggal akhir pembayaran"></label></div><p id="paymentFilteredTotal" class="table-total"></p><div class="table-wrap"><table><thead><tr><th>Tanggal</th><th>Siswa</th><th>No. tagihan</th><th>Metode</th><th>Referensi</th><th>Jumlah</th><th>Status Verifikasi</th><th>Aksi</th></tr></thead><tbody id="pembayaranTable"></tbody></table></div></section>
       </section>
 
       <section id="laporan" class="page">
         <div class="section-toolbar"><div><p class="eyebrow">RINGKASAN KEUANGAN</p><h2>Laporan</h2><p class="muted">Penerimaan per bulan dan posisi tunggakan.</p></div><label class="report-year">Tahun<select id="reportYear" class="filter-select"></select></label></div>
         <div class="report-summary-grid"><article class="report-summary"><span>Total penerimaan</span><strong id="reportYearIncome">Rp 0</strong></article><article class="report-summary"><span>Total piutang</span><strong id="reportReceivables">Rp 0</strong></article><article class="report-summary"><span>Tunggakan jatuh tempo</span><strong id="reportOverdue">Rp 0</strong></article></div>
-        <div class="dashboard-grid report-grid"><section class="content-panel"><div class="panel-heading"><div><p class="eyebrow">PENERIMAAN</p><h2>Pendapatan bulanan</h2></div></div><div class="table-wrap"><table><thead><tr><th>Bulan</th><th>Transaksi</th><th>Total</th></tr></thead><tbody id="reportIncomeTable"></tbody></table></div></section><section class="content-panel"><div class="panel-heading"><div><p class="eyebrow">PERLU DITINDAKLANJUTI</p><h2>Tunggakan</h2></div></div><div class="table-wrap"><table><thead><tr><th>Tagihan</th><th>Siswa</th><th>Jatuh tempo</th><th>Sisa</th></tr></thead><tbody id="reportReceivableTable"></tbody></table></div></section></div>
+        <div class="dashboard-grid report-grid"><section class="content-panel"><div class="panel-heading"><div><p class="eyebrow">PENERIMAAN</p><h2>Pendapatan bulanan</h2></div></div><div class="table-wrap"><table><thead><tr><th>Bulan</th><th>Transaksi</th><th>Total</th></tr></thead><tbody id="reportIncomeTable"></tbody></table></div></section></div>
         <p id="reportCaveat" class="report-caveat">Laporan ini murni menampilkan penerimaan kas dan posisi piutang.</p>
       </section>
 
@@ -120,7 +119,7 @@
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
-  <script src="config.js"></script>
+  <script src="../backend/config.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
   <script src="script.js?v=20260930-user-violin-photo"></script>
 </body>
