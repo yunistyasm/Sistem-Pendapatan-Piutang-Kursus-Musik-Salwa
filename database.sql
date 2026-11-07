@@ -54,13 +54,77 @@ CREATE TABLE IF NOT EXISTS public.pembayaran (
     jumlah_bayar NUMERIC(14,2) NOT NULL CHECK (jumlah_bayar > 0),
     metode VARCHAR(30) NOT NULL CHECK (metode IN ('Tunai', 'Transfer bank', 'QRIS', 'Lainnya')),
     referensi VARCHAR(100),
+    status_verifikasi VARCHAR(20) NOT NULL DEFAULT 'Terverifikasi',
     dibuat_pada TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+ALTER TABLE public.pembayaran
+    ADD COLUMN IF NOT EXISTS status_verifikasi VARCHAR(20) NOT NULL DEFAULT 'Terverifikasi';
+ALTER TABLE public.pembayaran
+    ALTER COLUMN status_verifikasi SET DEFAULT 'Terverifikasi';
+UPDATE public.pembayaran
+SET status_verifikasi = 'Terverifikasi'
+WHERE status_verifikasi IS NULL;
+ALTER TABLE public.pembayaran
+    ALTER COLUMN status_verifikasi SET NOT NULL;
+
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint
+        WHERE conname = 'pembayaran_status_verifikasi_check'
+            AND conrelid = 'public.pembayaran'::regclass
+    ) THEN
+        ALTER TABLE public.pembayaran
+            ADD CONSTRAINT pembayaran_status_verifikasi_check
+            CHECK (status_verifikasi IN ('Pending', 'Terverifikasi'));
+    END IF;
+END;
+$$;
 
 CREATE INDEX IF NOT EXISTS idx_tagihan_siswa ON public.tagihan(id_siswa);
 CREATE INDEX IF NOT EXISTS idx_tagihan_jatuh_tempo ON public.tagihan(tanggal_jatuh_tempo);
 CREATE INDEX IF NOT EXISTS idx_pembayaran_tagihan ON public.pembayaran(id_tagihan);
 CREATE INDEX IF NOT EXISTS idx_pembayaran_tanggal ON public.pembayaran(tanggal_bayar);
+
+-- Hapus siswa hanya jika semua tagihannya lunas; riwayat keuangannya ikut dihapus.
+CREATE OR REPLACE FUNCTION public.hapus_siswa_lunas(p_id_siswa BIGINT)
+RETURNS VOID
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    PERFORM 1
+    FROM public.siswa
+    WHERE id_siswa = p_id_siswa
+    FOR UPDATE;
+
+    IF NOT FOUND THEN
+        RAISE EXCEPTION 'Siswa tidak ditemukan.';
+    END IF;
+
+    IF EXISTS (
+        SELECT tagihan.id_tagihan
+        FROM public.tagihan AS tagihan
+        LEFT JOIN public.pembayaran AS pembayaran
+            ON pembayaran.id_tagihan = tagihan.id_tagihan
+        WHERE tagihan.id_siswa = p_id_siswa
+        GROUP BY tagihan.id_tagihan, tagihan.jumlah_tagihan
+        HAVING COALESCE(SUM(pembayaran.jumlah_bayar) FILTER (WHERE pembayaran.status_verifikasi = 'Terverifikasi'), 0) < tagihan.jumlah_tagihan
+    ) THEN
+        RAISE EXCEPTION 'Siswa masih memiliki tagihan yang belum lunas.';
+    END IF;
+
+    DELETE FROM public.pembayaran AS pembayaran
+    USING public.tagihan AS tagihan
+    WHERE pembayaran.id_tagihan = tagihan.id_tagihan
+        AND tagihan.id_siswa = p_id_siswa;
+
+    DELETE FROM public.tagihan WHERE id_siswa = p_id_siswa;
+    DELETE FROM public.siswa WHERE id_siswa = p_id_siswa;
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION public.hapus_siswa_lunas(BIGINT) TO anon, authenticated;
 
 -- Kunci baris tagihan saat pembayaran ditambahkan agar dua pembayaran bersamaan
 -- tidak dapat membuat total pembayaran melebihi nilai tagihan.
@@ -78,6 +142,10 @@ BEGIN
         END IF;
     END IF;
 
+    IF NEW.status_verifikasi = 'Pending' THEN
+        RETURN NEW;
+    END IF;
+
     SELECT jumlah_tagihan INTO nilai_tagihan
     FROM public.tagihan
     WHERE id_tagihan = NEW.id_tagihan
@@ -86,11 +154,13 @@ BEGIN
     IF TG_OP = 'INSERT' THEN
         SELECT COALESCE(SUM(jumlah_bayar), 0) INTO total_pembayaran
         FROM public.pembayaran
-        WHERE id_tagihan = NEW.id_tagihan;
+        WHERE id_tagihan = NEW.id_tagihan
+            AND status_verifikasi = 'Terverifikasi';
     ELSE
         SELECT COALESCE(SUM(jumlah_bayar), 0) INTO total_pembayaran
         FROM public.pembayaran
         WHERE id_tagihan = NEW.id_tagihan
+            AND status_verifikasi = 'Terverifikasi'
             AND id_pembayaran <> OLD.id_pembayaran;
     END IF;
 
@@ -104,7 +174,7 @@ $$;
 
 DROP TRIGGER IF EXISTS pembayaran_batasi_total ON public.pembayaran;
 CREATE TRIGGER pembayaran_batasi_total
-BEFORE INSERT OR UPDATE OF id_tagihan, jumlah_bayar ON public.pembayaran
+BEFORE INSERT OR UPDATE OF id_tagihan, jumlah_bayar, status_verifikasi ON public.pembayaran
 FOR EACH ROW EXECUTE FUNCTION public.validasi_total_pembayaran();
 
 -- Nilai tagihan tidak boleh diturunkan di bawah jumlah yang sudah dibayar.
@@ -191,17 +261,5 @@ WHERE NOT EXISTS (
     SELECT 1 FROM public.program_kursus WHERE nama_program = 'Kursus Keyboard Pemula'
 );
 
-INSERT INTO public.siswa (nama_siswa)
-SELECT demo.nama_siswa
-FROM (VALUES
-    ('Ahmad Fauzan'),
-    ('Bima Pratama'),
-    ('Dimas Saputra'),
-    ('Fajar Ramadhan'),
-    ('Rizky Maulana')
-) AS demo(nama_siswa)
-WHERE NOT EXISTS (
-    SELECT 1 FROM public.siswa WHERE nama_siswa = demo.nama_siswa
-);
-
 COMMIT;
+NOTIFY pgrst, 'reload schema';
