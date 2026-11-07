@@ -65,13 +65,14 @@ async function loadAll(){
   [state.siswa,state.program,state.tagihan,state.pembayaran]=results.map(result=>result.data||[]);
   renderAll();
 }
-function paidAmount(invoiceId){return state.pembayaran.filter(payment=>payment.id_tagihan===invoiceId).reduce((sum,payment)=>sum+Number(payment.jumlah_bayar),0)}
+function isVerifiedPayment(payment){return payment.status_verifikasi==="Terverifikasi"}
+function paidAmount(invoiceId){return state.pembayaran.filter(payment=>payment.id_tagihan===invoiceId&&isVerifiedPayment(payment)).reduce((sum,payment)=>sum+Number(payment.jumlah_bayar),0)}
 function balance(invoice){return Math.max(0,Number(invoice.jumlah_tagihan)-paidAmount(invoice.id_tagihan))}
-function invoiceStatus(invoice){const paid=paidAmount(invoice.id_tagihan);return paid===0?"Belum dibayar":balance(invoice)===0?"Lunas":"Sebagian"}
+function invoiceStatus(invoice){const remaining=balance(invoice);if(remaining===0)return"Lunas";if(invoice.tanggal_jatuh_tempo<todayISO())return"Telat";return paidAmount(invoice.id_tagihan)===0?"Belum dibayar":"Sebagian"}
 function studentName(id){return state.siswa.find(student=>student.id_siswa===id)?.nama_siswa||"Siswa dihapus"}
 function programName(id){return state.program.find(program=>program.id_program===id)?.nama_program||"Program dihapus"}
 function invoiceNumber(id){return `INV-${String(id).padStart(4,"0")}`}
-function statusBadge(status){const className=status==="Lunas"||status==="Aktif"?"paid":status==="Sebagian"?"partial":status==="Nonaktif"?"":"unpaid";const activeClass=status==="Aktif"?" active":"";return `<span class="status-badge ${className}${activeClass}">${status}</span>`}
+function statusBadge(status){const className=status==="Lunas"||status==="Aktif"||status==="Terverifikasi"?"paid":status==="Pending"?"pending":status==="Telat"?"overdue":status==="Sebagian"?"partial":status==="Nonaktif"?"":"unpaid";const activeClass=status==="Aktif"?" active":"";return `<span class="status-badge ${className}${activeClass}">${status}</span>`}
 function emptyRow(columns,message){return `<tr><td colspan="${columns}" class="empty">${message}</td></tr>`}
 function renderAll(){renderStats();renderDashboardCharts();renderDashboard();renderNotifications();renderSiswa();renderProgram();renderTagihan();renderPembayaran();renderReports()}
 
@@ -82,7 +83,7 @@ function dashboardPeriodStart(period=dashboardPeriod,now=new Date()){
 }
 function paymentsForDashboardPeriod(period=dashboardPeriod){
   const start=dashboardPeriodStart(period);const end=new Date();end.setHours(23,59,59,999);
-  return state.pembayaran.filter(payment=>{const date=new Date(`${payment.tanggal_bayar}T00:00:00`);return date>=start&&date<=end});
+  return state.pembayaran.filter(payment=>{const date=new Date(`${payment.tanggal_bayar}T00:00:00`);return isVerifiedPayment(payment)&&date>=start&&date<=end});
 }
 function dashboardTrendBuckets(period=dashboardPeriod){
   const now=new Date();
@@ -101,11 +102,13 @@ function renderDashboardCharts(){
     if(revenue.has(key))revenue.set(key,revenue.get(key)+Number(payment.jumlah_bayar||0));
   });
   const periodLabels={month:"Bulan ini",quarter:"3 bulan terakhir",year:"Tahun ini"};
+  const emptyIncomeMessages={month:"Belum ada pendapatan bulan ini",quarter:"Belum ada pendapatan 3 bulan terakhir",year:"Belum ada pendapatan tahun ini"};
+  const hasIncome=[...revenue.values()].some(amount=>amount>0);
   $("chartPeriod").textContent=periodLabels[dashboardPeriod];
   $("incomeChartEyebrow").textContent=dashboardPeriod==="month"?"PENDAPATAN HARIAN":dashboardPeriod==="quarter"?"PENDAPATAN 3 BULAN":"PENDAPATAN TAHUNAN";
   $("incomeChartSubtitle").textContent=dashboardPeriod==="month"?"Pembayaran harian pada bulan berjalan.":dashboardPeriod==="quarter"?"Total penerimaan per bulan selama 3 bulan terakhir.":"Total penerimaan per bulan pada tahun berjalan.";
   $("incomeChart").setAttribute("aria-label",dashboardPeriod==="month"?"Grafik pendapatan harian bulan berjalan":dashboardPeriod==="quarter"?"Grafik pendapatan tiga bulan terakhir":"Grafik pendapatan tahun berjalan");
-  const statusLabels=["Belum dibayar","Sebagian","Lunas"];
+  const statusLabels=["Belum dibayar","Sebagian","Telat","Lunas"];
   const statusValues=statusLabels.map(status=>state.tagihan.filter(invoice=>invoiceStatus(invoice)===status).length);
   $("invoiceStatusTotal").textContent=state.tagihan.length;
 
@@ -113,13 +116,14 @@ function renderDashboardCharts(){
   dashboardCharts.income=new Chart($("incomeChart"),{
     type:"line",
     data:{labels:buckets.map(bucket=>bucket.label),datasets:[{data:buckets.map(bucket=>revenue.get(bucket.key)),borderColor:"#9a7844",backgroundColor:"rgba(198,164,107,.16)",fill:true,tension:.36,borderWidth:2,pointRadius:dashboardPeriod==="month"?1.5:3,pointHoverRadius:5,pointBackgroundColor:"#fff",pointBorderColor:"#9a7844",pointBorderWidth:2}]},
+    plugins:[{id:"incomeEmptyState",afterDraw(chart){if(hasIncome||!chart.chartArea)return;const{ctx,chartArea}=chart;ctx.save();ctx.textAlign="center";ctx.textBaseline="middle";ctx.fillStyle="#838b95";ctx.font='600 12px "Plus Jakarta Sans", sans-serif';ctx.fillText(emptyIncomeMessages[dashboardPeriod],(chartArea.left+chartArea.right)/2,(chartArea.top+chartArea.bottom)/2);ctx.restore()}}],
     options:{responsive:true,maintainAspectRatio:false,animation:{duration:500},plugins:{legend:{display:false},tooltip:{callbacks:{label:context=>rupiah(context.raw)}}},scales:{x:{grid:{display:false},border:{display:false},ticks:{autoSkip:true,maxTicksLimit:dashboardPeriod==="month"?8:12,color:"#78828f",font:{family:"Plus Jakarta Sans",size:10}}},y:{beginAtZero:true,grid:{color:"rgba(23,41,69,.07)"},border:{display:false},ticks:{maxTicksLimit:5,color:"#78828f",font:{family:"Plus Jakarta Sans",size:9},callback:value=>new Intl.NumberFormat("id-ID",{notation:"compact",maximumFractionDigits:1}).format(value)}}}}
   });
 
   dashboardCharts.invoiceStatus?.destroy();
   dashboardCharts.invoiceStatus=new Chart($("invoiceStatusChart"),{
     type:"doughnut",
-    data:{labels:statusLabels,datasets:[{data:statusValues,backgroundColor:["#d7c4a3","#8196a9","#7d967d"],borderColor:"#fff",borderWidth:4,hoverOffset:5}]},
+    data:{labels:statusLabels,datasets:[{data:statusValues,backgroundColor:["#d7c4a3","#8196a9","#c65b5b","#7d967d"],borderColor:"#fff",borderWidth:4,hoverOffset:5}]},
     options:{responsive:true,maintainAspectRatio:false,cutout:"72%",animation:{duration:700},plugins:{legend:{position:"bottom",labels:{usePointStyle:true,pointStyle:"circle",boxWidth:8,padding:14,color:"#526174",font:{family:"Plus Jakarta Sans",size:10}}},tooltip:{callbacks:{label:context=>`${context.label}: ${context.raw} tagihan`}}}}
   });
 }
@@ -151,7 +155,7 @@ function renderNotifications(){
 function renderDashboard(){
   const openInvoices=state.tagihan.filter(invoice=>balance(invoice)>0).sort((first,second)=>first.tanggal_jatuh_tempo.localeCompare(second.tanggal_jatuh_tempo)).slice(0,5);
   $("duePreview").innerHTML=openInvoices.map(invoice=>`<tr><td class="item-name">${esc(studentName(invoice.id_siswa))}<small class="cell-sub">${esc(programName(invoice.id_program))}</small></td><td>${dateText(invoice.tanggal_jatuh_tempo)}</td><td class="amount">${rupiah(balance(invoice))}</td><td>${statusBadge(invoiceStatus(invoice))}</td></tr>`).join("")||emptyRow(4,"Tidak ada tagihan yang perlu ditindaklanjuti.");
-  $("paymentPreview").innerHTML=state.pembayaran.slice(0,5).map(payment=>`<div class="activity-item"><span class="activity-mark" aria-hidden="true">↗</span><div class="activity-copy"><strong>${esc(studentName(state.tagihan.find(invoice=>invoice.id_tagihan===payment.id_tagihan)?.id_siswa))}</strong><small>${dateText(payment.tanggal_bayar)} · ${esc(payment.metode)}</small></div><b>${rupiah(payment.jumlah_bayar)}</b></div>`).join("")||`<div class="empty-block">Belum ada pembayaran tercatat.</div>`;
+  $("paymentPreview").innerHTML=state.pembayaran.filter(isVerifiedPayment).slice(0,5).map(payment=>`<div class="activity-item"><span class="activity-mark" aria-hidden="true">↗</span><div class="activity-copy"><strong>${esc(studentName(state.tagihan.find(invoice=>invoice.id_tagihan===payment.id_tagihan)?.id_siswa))}</strong><small>${dateText(payment.tanggal_bayar)} · ${esc(payment.metode)}</small></div><b>${rupiah(payment.jumlah_bayar)}</b></div>`).join("")||`<div class="empty-block">Belum ada pembayaran terverifikasi.</div>`;
 }
 
 function renderSiswa(){
@@ -164,7 +168,11 @@ function renderSiswa(){
   });
   const pageCount=Math.max(1,Math.ceil(filtered.length/siswaPageSize));siswaPage=Math.min(siswaPage,pageCount);
   const start=(siswaPage-1)*siswaPageSize;const pageItems=filtered.slice(start,start+siswaPageSize);
-  const rows=pageItems.map(student=>`<tr><td><button class="student-detail-link" onclick="openStudentDetail(${student.id_siswa})">${esc(student.nama_siswa)}</button></td><td>${esc(student.no_telepon||"-")}</td><td>${esc(student.email||"-")}</td><td>${dateText(student.tanggal_daftar)}</td><td>${statusBadge(student.aktif?"Aktif":"Nonaktif")}</td><td><div class="action-group"><button class="icon-btn edit-btn" aria-label="Edit siswa" onclick="editSiswa(${student.id_siswa})">✎</button><button class="icon-btn delete-btn" aria-label="Hapus siswa" onclick="deleteSiswa(${student.id_siswa})">×</button></div></td></tr>`).join("");
+  const rows=pageItems.map(student=>{
+    const hasHistory=state.tagihan.some(invoice=>invoice.id_siswa===student.id_siswa);
+    const rowAction=hasHistory?(student.aktif?`<button class="icon-btn delete-btn" aria-label="Nonaktifkan siswa" title="Nonaktifkan" onclick="deleteSiswa(${student.id_siswa})">×</button>`:""):`<button class="icon-btn delete-btn" aria-label="Hapus siswa" title="Hapus siswa" onclick="deleteSiswa(${student.id_siswa})">×</button>`;
+    return `<tr><td><button class="student-detail-link" onclick="openStudentDetail(${student.id_siswa})">${esc(student.nama_siswa)}</button></td><td>${esc(student.no_telepon||"-")}</td><td>${esc(student.email||"-")}</td><td>${dateText(student.tanggal_daftar)}</td><td>${statusBadge(student.aktif?"Aktif":"Nonaktif")}</td><td><div class="action-group"><button class="icon-btn edit-btn" aria-label="Edit siswa" onclick="editSiswa(${student.id_siswa})">✎</button>${rowAction}</div></td></tr>`;
+  }).join("");
   $("siswaTable").innerHTML=rows||emptyRow(6,"Belum ada siswa yang cocok dengan filter.");
   $("siswaSummary").textContent=filtered.length?`${start+1}–${Math.min(start+siswaPageSize,filtered.length)} dari ${filtered.length} siswa`:"0 siswa";
   $("siswaPageInfo").textContent=`Halaman ${siswaPage} dari ${pageCount}`;
@@ -176,7 +184,8 @@ function renderProgram(){
     Gitar:"https://images.unsplash.com/photo-1525201548942-d8732f6617a0?auto=format&fit=crop&w=800&q=82",
     Vokal:"https://images.unsplash.com/photo-1516280440614-37939bbacd81?auto=format&fit=crop&w=800&q=82",
     Biola:"https://images.unsplash.com/photo-1597591578307-941860622461?auto=format&fit=crop&w=800&q=82",
-    Keyboard:"https://images.unsplash.com/photo-1781624448097-4e78d7d919f3?auto=format&fit=crop&w=800&q=82"
+    Keyboard:"https://images.unsplash.com/photo-1781624448097-4e78d7d919f3?auto=format&fit=crop&w=800&q=82",
+    Drum:"https://images.unsplash.com/photo-1519892300165-cb5542fb47c7?auto=format&fit=crop&w=800&q=82"
   };
   const coursePhotos={
     "kursus biola pemula":programPhotos.Biola,
@@ -203,9 +212,8 @@ function renderProgram(){
   $("programCards").innerHTML=filteredPrograms.map(program=>{
     const active=program.aktif!==false;const image=coursePhotos[program.nama_program.trim().toLocaleLowerCase("id")]||programPhotos[program.instrumen]||programPhotos.Piano;const description=programDescriptions[program.instrumen]||"Kembangkan kemampuan musik dengan bimbingan terarah.";
     const studentCount=new Set(state.tagihan.filter(invoice=>invoice.id_program===program.id_program).map(invoice=>invoice.id_siswa)).size;
-    return `<article class="program-card ${active?"":"is-inactive"}"><button class="program-card-select" type="button" data-select-program="${program.id_program}" ${active?"":"disabled"} aria-label="Pilih ${esc(program.nama_program)} untuk membuat tagihan"><figure class="program-card-image"><img src="${image}" alt="Instrumen ${esc(program.instrumen)}" loading="lazy"><span class="program-image-tag">${esc(program.instrumen)}</span></figure><div class="program-card-body"><div class="program-card-title"><h3>${esc(program.nama_program)}</h3>${statusBadge(active?"Aktif":"Nonaktif")}</div><p>${description}</p><div class="program-card-meta"><span>${program.durasi_menit} menit / pertemuan</span><strong>${rupiah(program.biaya_bulanan)}<small> / bulan</small></strong></div><div class="program-card-extra"><span>${studentCount} siswa tercatat</span></div><span class="program-card-cta">${active?"Pilih & buat tagihan":"Program nonaktif"}<span aria-hidden="true">→</span></span></div></button><div class="program-card-tools"><button class="icon-btn edit-btn" aria-label="Edit program" onclick="editProgram(${program.id_program})">✎</button><button class="icon-btn delete-btn" aria-label="Hapus program" onclick="deleteProgram(${program.id_program})">×</button></div></article>`;
+    return `<article class="program-card ${active?"":"is-inactive"}"><div class="program-card-content"><figure class="program-card-image"><img src="${image}" alt="Instrumen ${esc(program.instrumen)}" loading="lazy"><span class="program-image-tag">${esc(program.instrumen)}</span></figure><div class="program-card-body"><div class="program-card-title"><h3>${esc(program.nama_program)}</h3>${statusBadge(active?"Aktif":"Nonaktif")}</div><p>${description}</p><div class="program-card-meta"><span>${program.durasi_menit} menit / pertemuan</span><strong>${rupiah(program.biaya_bulanan)}<small> / bulan</small></strong></div><div class="program-card-extra"><span>${studentCount} siswa tercatat</span></div></div></div><div class="program-card-tools"><button class="icon-btn edit-btn" aria-label="Edit program" onclick="editProgram(${program.id_program})">✎</button><button class="icon-btn delete-btn" aria-label="Hapus program" onclick="deleteProgram(${program.id_program})">×</button></div></article>`;
   }).join("")||`<div class="content-panel empty-block">Tidak ada program yang cocok dengan pencarian.</div>`;
-  $("programCards").querySelectorAll("[data-select-program]").forEach(button=>button.addEventListener("click",()=>{showPage("tagihan");tagihanForm(null,Number(button.dataset.selectProgram))}));
 }
 function renderTagihan(){
   const query=$("searchTagihan").value.trim().toLocaleLowerCase("id");const filter=$("filterTagihan").value;
@@ -246,23 +254,23 @@ function renderPembayaran(){
   const query=$("searchPembayaran").value.trim().toLocaleLowerCase("id");
   const start=$("paymentDateFrom").value;const end=$("paymentDateTo").value;
   const periodPayments=state.pembayaran.filter(payment=>{const date=payment.tanggal_bayar?.slice(0,10)||"";return(!start||date>=start)&&(!end||date<=end)});
-  $("paymentFilteredTotal").textContent=`${periodPayments.length} pembayaran · Total penerimaan ${rupiah(periodPayments.reduce((sum,payment)=>sum+Number(payment.jumlah_bayar),0))}`;
-  const rows=periodPayments.filter(payment=>{const invoice=state.tagihan.find(item=>item.id_tagihan===payment.id_tagihan);return `${studentName(invoice?.id_siswa)} ${payment.referensi||""} ${invoiceNumber(payment.id_tagihan)}`.toLocaleLowerCase("id").includes(query)}).map(payment=>{const invoice=state.tagihan.find(item=>item.id_tagihan===payment.id_tagihan);return `<tr><td>${dateText(payment.tanggal_bayar)}</td><td class="item-name">${esc(studentName(invoice?.id_siswa))}</td><td><span class="id-pill">${invoiceNumber(payment.id_tagihan)}</span></td><td>${esc(payment.metode)}</td><td>${esc(payment.referensi||"-")}</td><td class="amount">${rupiah(payment.jumlah_bayar)}</td><td><div class="action-group"><button class="icon-btn print-btn" aria-label="Cetak struk pembayaran" title="Cetak struk" onclick="openPaymentReceipt(${payment.id_pembayaran})">⎙</button><button class="icon-btn edit-btn" aria-label="Edit pembayaran" title="Edit pembayaran" onclick="editPembayaran(${payment.id_pembayaran})">✎</button><button class="icon-btn delete-btn" aria-label="Hapus pembayaran" title="Hapus pembayaran" onclick="deletePembayaran(${payment.id_pembayaran})">×</button></div></td></tr>`}).join("");
-  $("pembayaranTable").innerHTML=rows||emptyRow(7,"Belum ada pembayaran untuk pencarian ini.");
+  const verifiedPayments=periodPayments.filter(isVerifiedPayment);
+  $("paymentFilteredTotal").textContent=`${periodPayments.length} pembayaran · ${verifiedPayments.length} terverifikasi · Total penerimaan ${rupiah(verifiedPayments.reduce((sum,payment)=>sum+Number(payment.jumlah_bayar),0))}`;
+  const rows=periodPayments.filter(payment=>{const invoice=state.tagihan.find(item=>item.id_tagihan===payment.id_tagihan);return `${studentName(invoice?.id_siswa)} ${payment.referensi||""} ${invoiceNumber(payment.id_tagihan)}`.toLocaleLowerCase("id").includes(query)}).map(payment=>{const invoice=state.tagihan.find(item=>item.id_tagihan===payment.id_tagihan);return `<tr><td>${dateText(payment.tanggal_bayar)}</td><td class="item-name">${esc(studentName(invoice?.id_siswa))}</td><td><span class="id-pill">${invoiceNumber(payment.id_tagihan)}</span></td><td>${esc(payment.metode)}</td><td>${esc(payment.referensi||"-")}</td><td class="amount">${rupiah(payment.jumlah_bayar)}</td><td>${statusBadge(payment.status_verifikasi)}</td><td><div class="action-group">${payment.status_verifikasi==="Pending"?`<button class="icon-btn verify-btn" aria-label="Verifikasi pembayaran" title="Verifikasi pembayaran" onclick="verifyPayment(${payment.id_pembayaran})">✓</button>`:""}${isVerifiedPayment(payment)?`<button class="icon-btn print-btn" aria-label="Cetak struk pembayaran" title="Cetak struk" onclick="openPaymentReceipt(${payment.id_pembayaran})">⎙</button>`:""}<button class="icon-btn edit-btn" aria-label="Edit pembayaran" title="Edit pembayaran" onclick="editPembayaran(${payment.id_pembayaran})">✎</button><button class="icon-btn delete-btn" aria-label="Hapus pembayaran" title="Hapus pembayaran" onclick="deletePembayaran(${payment.id_pembayaran})">×</button></div></td></tr>`}).join("");
+  $("pembayaranTable").innerHTML=rows||emptyRow(8,"Belum ada pembayaran untuk pencarian ini.");
 }
 function renderReports(){
-  const currentYear=new Date().getFullYear();const years=[...new Set([currentYear,...state.pembayaran.map(payment=>Number(payment.tanggal_bayar?.slice(0,4)))].filter(Number.isFinite))].sort((a,b)=>b-a);
+  const currentYear=new Date().getFullYear();const years=[...new Set([currentYear,...state.pembayaran.filter(isVerifiedPayment).map(payment=>Number(payment.tanggal_bayar?.slice(0,4)))].filter(Number.isFinite))].sort((a,b)=>b-a);
   const yearSelect=$("reportYear");const selectedYear=years.includes(Number(yearSelect.value))?Number(yearSelect.value):currentYear;
   yearSelect.innerHTML=years.map(year=>`<option value="${year}">${year}</option>`).join("");yearSelect.value=String(selectedYear);
   const monthlyTotals=Array(12).fill(0);const monthlyCounts=Array(12).fill(0);
-  state.pembayaran.forEach(payment=>{if(Number(payment.tanggal_bayar?.slice(0,4))===selectedYear){const month=Number(payment.tanggal_bayar.slice(5,7))-1;if(month>=0&&month<12){monthlyTotals[month]+=Number(payment.jumlah_bayar);monthlyCounts[month]++}}});
+  state.pembayaran.filter(isVerifiedPayment).forEach(payment=>{if(Number(payment.tanggal_bayar?.slice(0,4))===selectedYear){const month=Number(payment.tanggal_bayar.slice(5,7))-1;if(month>=0&&month<12){monthlyTotals[month]+=Number(payment.jumlah_bayar);monthlyCounts[month]++}}});
   $("reportYearIncome").textContent=rupiah(monthlyTotals.reduce((sum,value)=>sum+value,0));
   const openInvoices=state.tagihan.filter(invoice=>balance(invoice)>0).sort((a,b)=>a.tanggal_jatuh_tempo.localeCompare(b.tanggal_jatuh_tempo));
   const totalReceivables=openInvoices.reduce((sum,invoice)=>sum+balance(invoice),0);const overdue=openInvoices.filter(invoice=>invoice.tanggal_jatuh_tempo<todayISO()).reduce((sum,invoice)=>sum+balance(invoice),0);
   $("reportReceivables").textContent=rupiah(totalReceivables);$("reportOverdue").textContent=rupiah(overdue);
   const monthNames=Array.from({length:12},(_,month)=>new Intl.DateTimeFormat("id-ID",{month:"long"}).format(new Date(selectedYear,month,1)));
   $("reportIncomeTable").innerHTML=monthNames.map((month,index)=>`<tr><td>${month}</td><td>${monthlyCounts[index]}</td><td class="amount">${rupiah(monthlyTotals[index])}</td></tr>`).join("");
-  $("reportReceivableTable").innerHTML=openInvoices.map(invoice=>`<tr><td><span class="id-pill">${invoiceNumber(invoice.id_tagihan)}</span></td><td class="item-name">${esc(studentName(invoice.id_siswa))}</td><td>${dateText(invoice.tanggal_jatuh_tempo)}</td><td class="amount">${rupiah(balance(invoice))}</td></tr>`).join("")||emptyRow(4,"Tidak ada tunggakan.");
   $("reportCaveat").textContent="Laporan ini murni menampilkan penerimaan kas dan posisi piutang.";
 }
 function showPaymentReceipt(payment){
@@ -365,10 +373,10 @@ $("addSiswaBtn").onclick=()=>siswaForm();
 function siswaForm(id=null){
   const student=state.siswa.find(item=>item.id_siswa===id);const fields=field("Nama siswa","fNama",student?.nama_siswa||"")+field("No. telepon","fTelepon",student?.no_telepon||"", "tel",false)+field("Email","fEmail",student?.email||"","email",false)+field("Tanggal daftar","fDaftar",student?.tanggal_daftar||todayISO(),"date")+`<div class="form-group"><label for="fAktif">Status siswa</label><select id="fAktif"><option value="true" ${student?.aktif!==false?"selected":""}>Aktif</option><option value="false" ${student?.aktif===false?"selected":""}>Nonaktif</option></select></div>`;
   openModal(modalForm(student?"Edit siswa":"Tambah siswa","Lengkapi informasi siswa kursus.",fields,"Simpan siswa"));
-  $("recordForm").onsubmit=async event=>{event.preventDefault();await saveRecord("siswa",{nama_siswa:$("fNama").value.trim(),no_telepon:$("fTelepon").value.trim()||null,email:$("fEmail").value.trim()||null,tanggal_daftar:$("fDaftar").value,aktif:$("fAktif").value==="true"},"id_siswa",id)};
+  $("recordForm").onsubmit=async event=>{event.preventDefault();const submitButton=$("recordForm").querySelector('[type="submit"]');if(submitButton.disabled)return;submitButton.disabled=true;try{const saved=await saveRecord("siswa",{nama_siswa:$("fNama").value.trim(),no_telepon:$("fTelepon").value.trim()||null,email:$("fEmail").value.trim()||null,tanggal_daftar:$("fDaftar").value,aktif:$("fAktif").value==="true"},"id_siswa",id);if(!saved)submitButton.disabled=false}catch(error){submitButton.disabled=false;toast(error.message)}};
 }
 window.editSiswa=id=>siswaForm(id);
-window.deleteSiswa=async id=>{if(!confirm("Hapus data siswa ini? Siswa yang memiliki tagihan tidak dapat dihapus."))return;const {error}=await supabaseClient.from("siswa").delete().eq("id_siswa",id);if(error)return toast("Siswa tidak dapat dihapus karena masih memiliki tagihan.");toast("Data siswa dihapus.");await loadAll()};
+window.deleteSiswa=async id=>{const student=state.siswa.find(item=>item.id_siswa===Number(id));if(!student)return;const hasHistory=state.tagihan.some(invoice=>invoice.id_siswa===student.id_siswa);if(hasHistory){if(!student.aktif||!confirm("Nonaktifkan siswa ini? Data tagihan dan riwayat pembayaran akan tetap aman tersimpan."))return;const {error}=await supabaseClient.from("siswa").update({aktif:false}).eq("id_siswa",id);if(error)return toast(error.message);toast("Siswa berhasil dinonaktifkan.")}else{if(!confirm("Hapus siswa ini secara permanen? Siswa ini belum memiliki riwayat tagihan."))return;const {error}=await supabaseClient.from("siswa").delete().eq("id_siswa",id);if(error)return toast(error.message);toast("Data siswa berhasil dihapus.")}await loadAll()};
 
 $("addProgramBtn").onclick=()=>programForm();
 function programForm(id=null){
@@ -380,7 +388,6 @@ window.editProgram=id=>programForm(id);
 window.deleteProgram=async id=>{if(!confirm("Hapus program ini? Program yang sudah tercantum pada tagihan tidak dapat dihapus."))return;const {error}=await supabaseClient.from("program_kursus").delete().eq("id_program",id);if(error)return toast("Program tidak dapat dihapus karena masih digunakan.");toast("Program dihapus.");await loadAll()};
 
 $("addTagihanBtn").onclick=()=>tagihanForm();
-$("quickInvoice").onclick=()=>{showPage("tagihan");tagihanForm()};
 function tagihanForm(id=null,selectedProgramId=null){
   if(!state.siswa.length||!state.program.length)return toast("Tambahkan data siswa dan program aktif terlebih dahulu.");
   const invoice=state.tagihan.find(item=>item.id_tagihan===id);const chosenProgramId=invoice?.id_program??selectedProgramId;const students=activeOptions(state.siswa,"id_siswa","nama_siswa",invoice?.id_siswa);const programs=activeOptions(state.program,"id_program","nama_program",chosenProgramId);
@@ -391,18 +398,24 @@ function tagihanForm(id=null,selectedProgramId=null){
   $("recordForm").onsubmit=async event=>{event.preventDefault();const payload={id_siswa:Number($("fSiswa").value),id_program:Number($("fProgram").value),periode:$("fPeriode").value.trim(),tanggal_terbit:$("fTerbit").value,tanggal_jatuh_tempo:$("fTempo").value,jumlah_tagihan:Number($("fJumlah").value),keterangan:$("fKeterangan").value.trim()||null};await saveRecord("tagihan",payload,"id_tagihan",id)};
 }
 window.editTagihan=id=>tagihanForm(id);
-window.deleteTagihan=async id=>{if(paidAmount(id)>0)return toast("Tagihan dengan pembayaran tidak dapat dihapus.");if(!confirm("Hapus tagihan ini?"))return;const {error}=await supabaseClient.from("tagihan").delete().eq("id_tagihan",id);if(error)return toast(error.message);toast("Tagihan dihapus.");await loadAll()};
+window.deleteTagihan=async id=>{if(state.pembayaran.some(payment=>payment.id_tagihan===id))return toast("Tagihan dengan pembayaran tercatat tidak dapat dihapus.");if(!confirm("Hapus tagihan ini?"))return;const {error}=await supabaseClient.from("tagihan").delete().eq("id_tagihan",id);if(error)return toast(error.message);toast("Tagihan dihapus.");await loadAll()};
 
 $("addPembayaranBtn").onclick=()=>pembayaranForm();
-$("quickPayment").onclick=()=>{showPage("pembayaran");pembayaranForm()};
 function pembayaranForm(id=null){
   const payment=state.pembayaran.find(item=>item.id_pembayaran===id);const outstanding=state.tagihan.filter(invoice=>payment?invoice.id_tagihan===payment.id_tagihan:balance(invoice)>0);
   if(!outstanding.length)return toast("Belum ada tagihan dengan sisa pembayaran.");
-  const invoiceOptions=outstanding.map(invoice=>({value:invoice.id_tagihan,label:`${invoiceNumber(invoice.id_tagihan)} · ${studentName(invoice.id_siswa)} · sisa ${rupiah(balance(invoice)+(payment?.id_tagihan===invoice.id_tagihan?Number(payment.jumlah_bayar):0))}`}));
-  const fields=selectField("Tagihan","fTagihan",invoiceOptions,payment?.id_tagihan)+field("Tanggal pembayaran","fTanggal",payment?.tanggal_bayar||todayISO(),"date")+field("Jumlah pembayaran (Rp)","fJumlah",payment?.jumlah_bayar||"","number",true,'min="1" step="1"')+selectField("Metode pembayaran","fMetode",["Tunai","Transfer bank","QRIS","Lainnya"].map(value=>({value,label:value})),payment?.metode||"Transfer bank")+field("Nomor referensi (opsional)","fReferensi",payment?.referensi||"", "text",false);
+  const invoiceOptions=outstanding.map(invoice=>({value:invoice.id_tagihan,label:`${invoiceNumber(invoice.id_tagihan)} · ${studentName(invoice.id_siswa)} · sisa ${rupiah(balance(invoice)+(payment?.id_tagihan===invoice.id_tagihan&&isVerifiedPayment(payment)?Number(payment.jumlah_bayar):0))}`}));
+  const fields=selectField("Tagihan","fTagihan",invoiceOptions,payment?.id_tagihan)+field("Tanggal pembayaran","fTanggal",payment?.tanggal_bayar||todayISO(),"date")+`<div class="form-group"><label for="fJumlah">Jumlah pembayaran (Rp)</label><div class="preset-buttons"><button type="button" class="preset-btn" id="btnLunas" aria-pressed="false">Lunas</button><button type="button" class="preset-btn" id="btnDP" aria-pressed="false">DP 50%</button></div><input id="fJumlah" type="number" min="1" step="1" value="${payment?.jumlah_bayar||""}" required></div>`+selectField("Metode pembayaran","fMetode",["Tunai","Transfer bank","QRIS"].map(value=>({value,label:value})),payment?.metode||"Transfer bank")+field("Nomor referensi (opsional)","fReferensi",payment?.referensi||"", "text",false);
   openModal(modalForm(payment?"Edit pembayaran":"Catat pembayaran","Pembayaran akan mengurangi saldo piutang secara otomatis.",fields,"Simpan pembayaran"));
-  $("recordForm").onsubmit=async event=>{event.preventDefault();const invoiceId=Number($("fTagihan").value);const amount=Number($("fJumlah").value);const bill=state.tagihan.find(item=>item.id_tagihan===invoiceId);const available=balance(bill)+(payment?.id_tagihan===invoiceId?Number(payment.jumlah_bayar):0);if(amount>available)return toast(`Maksimal pembayaran untuk tagihan ini ${rupiah(available)}.`);const payload={id_tagihan:invoiceId,tanggal_bayar:$("fTanggal").value,jumlah_bayar:amount,metode:$("fMetode").value,referensi:$("fReferensi").value.trim()||null};const result=id?await supabaseClient.from("pembayaran").update(payload).eq("id_pembayaran",id).select().single():await supabaseClient.from("pembayaran").insert(payload).select().single();if(result.error)return toast(result.error.message);closeModal();await loadAll();if(!id)showPaymentReceipt(result.data)};
+  const getMaxAmount=()=>{const invoiceId=Number($("fTagihan").value);const bill=state.tagihan.find(item=>item.id_tagihan===invoiceId);return balance(bill)+(payment?.id_tagihan===invoiceId&&isVerifiedPayment(payment)?Number(payment.jumlah_bayar):0)};
+  let selectedAmountPreset=null;
+  const chooseAmountPreset=preset=>{selectedAmountPreset=preset;["btnLunas","btnDP"].forEach(buttonId=>{const selected=buttonId===(preset==="lunas"?"btnLunas":"btnDP");$(buttonId).classList.toggle("is-selected",selected);$(buttonId).setAttribute("aria-pressed",String(selected))});$("fJumlah").value=preset==="lunas"?getMaxAmount():Math.round(getMaxAmount()/2)};
+  $("btnLunas").addEventListener("click",()=>chooseAmountPreset("lunas"));
+  $("btnDP").addEventListener("click",()=>chooseAmountPreset("dp"));
+  $("fTagihan").addEventListener("change",()=>{if(selectedAmountPreset)chooseAmountPreset(selectedAmountPreset)});
+  $("recordForm").onsubmit=async event=>{event.preventDefault();const invoiceId=Number($("fTagihan").value);const amount=Number($("fJumlah").value);const bill=state.tagihan.find(item=>item.id_tagihan===invoiceId);const available=balance(bill)+(payment?.id_tagihan===invoiceId&&isVerifiedPayment(payment)?Number(payment.jumlah_bayar):0);if(!selectedAmountPreset)return toast("Pilih preset Lunas atau DP 50% sebelum menyimpan.");const presetAmount=selectedAmountPreset==="lunas"?available:Math.round(available/2);if(amount!==presetAmount)return toast(`Nominal ${selectedAmountPreset==="lunas"?"Lunas":"DP 50%"} harus tepat ${rupiah(presetAmount)}.`);if(amount>available)return toast(`Maksimal pembayaran untuk tagihan ini ${rupiah(available)}.`);const payload={id_tagihan:invoiceId,tanggal_bayar:$("fTanggal").value,jumlah_bayar:amount,status_verifikasi:payment?.status_verifikasi||"Pending",metode:$("fMetode").value,referensi:$("fReferensi").value.trim()||null};const result=id?await supabaseClient.from("pembayaran").update(payload).eq("id_pembayaran",id).select().single():await supabaseClient.from("pembayaran").insert(payload).select().single();if(result.error)return toast(result.error.message);closeModal();await loadAll();if(!id)toast("Pembayaran tersimpan sebagai Pending. Verifikasi melalui daftar pembayaran.")};
 }
+window.verifyPayment=async id=>{const {data,error}=await supabaseClient.from("pembayaran").update({status_verifikasi:"Terverifikasi"}).eq("id_pembayaran",Number(id)).eq("status_verifikasi","Pending").select().single();if(error)return toast(error.message);await loadAll();showPaymentReceipt(data)};
 window.editPembayaran=id=>pembayaranForm(id);
 window.deletePembayaran=async id=>{if(!confirm("Hapus pembayaran ini? Saldo piutang akan bertambah kembali."))return;const {error}=await supabaseClient.from("pembayaran").delete().eq("id_pembayaran",id);if(error)return toast(error.message);toast("Pembayaran dihapus; saldo piutang diperbarui.");await loadAll()};
 
