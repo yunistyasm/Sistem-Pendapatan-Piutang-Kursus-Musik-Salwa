@@ -1,3 +1,4 @@
+document.addEventListener('DOMContentLoaded', () => {
 const state={siswa:[],program:[],tagihan:[],pembayaran:[]};
 const dashboardCacheKey="salwa-music-dashboard-stats-v1";
 const settingsStorageKey="salwa-music-settings-v1";
@@ -422,3 +423,4 @@ window.deletePembayaran=async id=>{if(!confirm("Hapus pembayaran ini? Saldo piut
 restoreSettings();
 restoreDashboardCache();
 loadAll();
+});
