@@ -189,13 +189,11 @@ function renderProgram(){
     Drum:"https://images.unsplash.com/photo-1519892300165-cb5542fb47c7?auto=format&fit=crop&w=800&q=82"
   };
   const coursePhotos={
-    "kursus biola pemula":programPhotos.Biola,
-    "kursus gitar akustik":"https://images.unsplash.com/photo-1536594527669-2f555de54e95?fit=crop&crop=entropy&w=1280&h=720&q=85",
-    "kursus gitar lanjutan":"https://images.unsplash.com/photo-1459305272254-33a7d593a851?fit=crop&crop=entropy&w=1280&h=720&q=85",
-    "kursus gitar pemula":programPhotos.Gitar,
+    "kursus biola":programPhotos.Biola,
+    "kursus drum":programPhotos.Drum,
+    "kursus gitar":"https://images.unsplash.com/photo-1536594527669-2f555de54e95?fit=crop&crop=entropy&w=1280&h=720&q=85",
     "kursus keyboard":programPhotos.Keyboard,
-    "kursus piano lanjutan":programPhotos.Piano,
-    "kursus piano pemula":"https://images.unsplash.com/photo-1652181820522-cc76583c9950?fit=crop&crop=entropy&w=1280&h=720&q=85",
+    "kursus piano":"https://images.unsplash.com/photo-1652181820522-cc76583c9950?fit=crop&crop=entropy&w=1280&h=720&q=85",
     "kursus vokal dasar":programPhotos.Vokal
   };
   const programDescriptions={
@@ -203,6 +201,7 @@ function renderProgram(){
     Gitar:"Pelajari akor, ritme, dan lagu langkah demi langkah.",
     Vokal:"Latih pernapasan, intonasi, dan kepercayaan diri.",
     Biola:"Kenali teknik gesek, intonasi, dan musikalitas.",
+    Drum:"Pelajari ritme, koordinasi, dan teknik bermain drum.",
     Keyboard:"Eksplorasi harmoni dan iringan dengan keyboard."
   };
   const categoryFilter=$("filterProgramInstrument");const selectedCategory=categoryFilter.value||"semua";const instruments=[...new Set(state.program.map(program=>program.instrumen))].sort((a,b)=>a.localeCompare(b,"id"));
