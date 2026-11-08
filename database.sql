@@ -225,16 +225,64 @@ CREATE POLICY demo_pembayaran_all ON public.pembayaran FOR ALL TO anon, authenti
 -- Dapat dijalankan ulang tanpa menggandakan data demo.
 BEGIN;
 
+-- Samakan nama program lama dengan katalog yang digunakan saat ini.
+-- Jika nama tujuan sudah ada, pindahkan referensi tagihan sebelum menghapus duplikat.
+DO $$
+DECLARE
+    nama_lama TEXT;
+    nama_baru TEXT;
+    id_lama BIGINT;
+    id_baru BIGINT;
+BEGIN
+    FOR nama_lama, nama_baru IN
+        SELECT mapping.nama_lama, mapping.nama_baru
+        FROM (VALUES
+            ('Kursus Piano Pemula', 'Kursus Piano'),
+            ('Kursus Gitar Akustik', 'Kursus Gitar'),
+            ('Kursus Biola Pemula', 'Kursus Biola'),
+            ('Kursus Drum Pemula', 'Kursus Drum'),
+            ('Kursus Keyboard Pemula', 'Kursus Keyboard')
+        ) AS mapping(nama_lama, nama_baru)
+    LOOP
+        id_baru := NULL;
+        SELECT id_program INTO id_baru
+        FROM public.program_kursus
+        WHERE nama_program = nama_baru
+        ORDER BY id_program
+        LIMIT 1;
+
+        FOR id_lama IN
+            SELECT id_program
+            FROM public.program_kursus
+            WHERE nama_program = nama_lama
+            ORDER BY id_program
+        LOOP
+            IF id_baru IS NULL THEN
+                UPDATE public.program_kursus
+                SET nama_program = nama_baru
+                WHERE id_program = id_lama;
+                id_baru := id_lama;
+            ELSE
+                UPDATE public.tagihan
+                SET id_program = id_baru
+                WHERE id_program = id_lama;
+                DELETE FROM public.program_kursus
+                WHERE id_program = id_lama;
+            END IF;
+        END LOOP;
+    END LOOP;
+END $$;
+
 INSERT INTO public.program_kursus (nama_program, instrumen, durasi_menit, biaya_bulanan)
-SELECT 'Kursus Piano Pemula', 'Piano', 45, 600000
+SELECT 'Kursus Piano', 'Piano', 45, 600000
 WHERE NOT EXISTS (
-    SELECT 1 FROM public.program_kursus WHERE nama_program = 'Kursus Piano Pemula'
+    SELECT 1 FROM public.program_kursus WHERE nama_program = 'Kursus Piano'
 );
 
 INSERT INTO public.program_kursus (nama_program, instrumen, durasi_menit, biaya_bulanan)
-SELECT 'Kursus Gitar Akustik', 'Gitar', 45, 450000
+SELECT 'Kursus Gitar', 'Gitar', 45, 450000
 WHERE NOT EXISTS (
-    SELECT 1 FROM public.program_kursus WHERE nama_program = 'Kursus Gitar Akustik'
+    SELECT 1 FROM public.program_kursus WHERE nama_program = 'Kursus Gitar'
 );
 
 INSERT INTO public.program_kursus (nama_program, instrumen, durasi_menit, biaya_bulanan)
@@ -244,21 +292,110 @@ WHERE NOT EXISTS (
 );
 
 INSERT INTO public.program_kursus (nama_program, instrumen, durasi_menit, biaya_bulanan)
-SELECT 'Kursus Biola Pemula', 'Biola', 45, 550000
+SELECT 'Kursus Biola', 'Biola', 45, 550000
 WHERE NOT EXISTS (
-    SELECT 1 FROM public.program_kursus WHERE nama_program = 'Kursus Biola Pemula'
+    SELECT 1 FROM public.program_kursus WHERE nama_program = 'Kursus Biola'
 );
 
 INSERT INTO public.program_kursus (nama_program, instrumen, durasi_menit, biaya_bulanan)
-SELECT 'Kursus Drum Pemula', 'Drum', 45, 500000
+SELECT 'Kursus Drum', 'Drum', 45, 500000
 WHERE NOT EXISTS (
-    SELECT 1 FROM public.program_kursus WHERE nama_program = 'Kursus Drum Pemula'
+    SELECT 1 FROM public.program_kursus WHERE nama_program = 'Kursus Drum'
 );
 
 INSERT INTO public.program_kursus (nama_program, instrumen, durasi_menit, biaya_bulanan)
-SELECT 'Kursus Keyboard Pemula', 'Keyboard', 45, 550000
+SELECT 'Kursus Keyboard', 'Keyboard', 45, 550000
 WHERE NOT EXISTS (
-    SELECT 1 FROM public.program_kursus WHERE nama_program = 'Kursus Keyboard Pemula'
+    SELECT 1 FROM public.program_kursus WHERE nama_program = 'Kursus Keyboard'
+);
+
+-- Pastikan setiap nama katalog hanya memiliki satu baris dan tagihannya tetap terhubung.
+DO $$
+DECLARE
+    nama_katalog TEXT;
+    id_utama BIGINT;
+    id_duplikat BIGINT;
+BEGIN
+    FOR nama_katalog IN
+        SELECT nama_program
+        FROM (VALUES
+            ('Kursus Biola'),
+            ('Kursus Drum'),
+            ('Kursus Gitar'),
+            ('Kursus Keyboard'),
+            ('Kursus Piano'),
+            ('Kursus Vokal Dasar')
+        ) AS katalog(nama_program)
+    LOOP
+        SELECT MIN(id_program) INTO id_utama
+        FROM public.program_kursus
+        WHERE nama_program = nama_katalog;
+
+        FOR id_duplikat IN
+            SELECT id_program
+            FROM public.program_kursus
+            WHERE nama_program = nama_katalog
+              AND id_program <> id_utama
+            ORDER BY id_program
+        LOOP
+            UPDATE public.tagihan
+            SET id_program = id_utama
+            WHERE id_program = id_duplikat;
+            DELETE FROM public.program_kursus
+            WHERE id_program = id_duplikat;
+        END LOOP;
+    END LOOP;
+END $$;
+
+INSERT INTO public.siswa (nama_siswa)
+SELECT demo.nama_siswa
+FROM (VALUES
+    ('Ahmad Fauzan'),
+    ('Bima Pratama'),
+    ('Dimas Saputra'),
+    ('Fajar Ramadhan'),
+    ('Rizky Maulana')
+) AS demo(nama_siswa)
+WHERE NOT EXISTS (
+    SELECT 1 FROM public.siswa WHERE nama_siswa = demo.nama_siswa
+);
+
+-- Hapus program lama di luar katalog demo, tetapi jangan menghapus program
+-- yang masih dipakai tagihan agar riwayat keuangan tetap utuh.
+DO $$
+DECLARE
+    program_terpakai TEXT;
+BEGIN
+    SELECT string_agg(format('%s (ID %s)', p.nama_program, p.id_program), ', ')
+    INTO program_terpakai
+    FROM public.program_kursus p
+    WHERE p.nama_program NOT IN (
+        'Kursus Piano',
+        'Kursus Gitar',
+        'Kursus Vokal Dasar',
+        'Kursus Biola',
+        'Kursus Drum',
+        'Kursus Keyboard'
+    )
+    AND EXISTS (
+        SELECT 1 FROM public.tagihan t WHERE t.id_program = p.id_program
+    );
+
+    IF program_terpakai IS NOT NULL THEN
+        RAISE EXCEPTION
+            'Program tambahan masih dipakai tagihan dan tidak dihapus: %',
+            program_terpakai;
+    END IF;
+END $$;
+
+DELETE FROM public.program_kursus
+WHERE nama_program NOT IN (
+    'Kursus Piano',
+    'Kursus Gitar',
+    'Kursus Vokal Dasar',
+    'Kursus Biola',
+    'Kursus Drum',
+    'Kursus Keyboard'
 );
 
 COMMIT;
