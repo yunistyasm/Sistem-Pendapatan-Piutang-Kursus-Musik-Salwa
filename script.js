@@ -236,7 +236,41 @@ function whatsappPhoneUrl(phone,message){
 }
 function invoiceReminder(invoice){
   const student=state.siswa.find(item=>item.id_siswa===invoice.id_siswa);const program=state.program.find(item=>item.id_program===invoice.id_program);
-  const message=`Halo ${student?.nama_siswa||"Bapak/Ibu"}, kami mengingatkan sisa tagihan ${invoiceNumber(invoice.id_tagihan)} untuk ${program?.nama_program||"program kursus"} sebesar ${rupiah(balance(invoice))}, jatuh tempo ${dateText(invoice.tanggal_jatuh_tempo)}. Terima kasih. Salwa Music`;
+  const totalPaid=paidAmount(invoice.id_tagihan);const remaining=balance(invoice);
+  const bankDetails=appSettings.bank?[
+    "",
+    "🏦 *Transfer ke:*",
+    appSettings.bank,
+    appSettings.accountName?`a.n. ${appSettings.accountName}`:"",
+    appSettings.accountNumber?`No. Rek: ${appSettings.accountNumber}`:""
+  ].filter(Boolean):[];
+  const message=[
+    "*TAGIHAN KURSUS*",
+    `_${appSettings.name}_`,
+    "",
+    `Halo *${student?.nama_siswa||"Bapak/Ibu"}* 👋`,
+    "Berikut rincian tagihan kursus Anda:",
+    "",
+    `📄 No. Tagihan: ${invoiceNumber(invoice.id_tagihan)}`,
+    `🎵 Program: ${program?.nama_program||"Program kursus"}`,
+    `📅 Periode: ${invoice.periode}`,
+    `⏰ Jatuh Tempo: ${dateText(invoice.tanggal_jatuh_tempo)}`,
+    "",
+    "━━━━━━━━━━━━━━━",
+    `💰 Total Tagihan: ${rupiah(invoice.jumlah_tagihan)}`,
+    `✅ Sudah Dibayar: ${rupiah(totalPaid)}`,
+    `📌 *Sisa Tagihan: ${rupiah(remaining)}*`,
+    "━━━━━━━━━━━━━━━",
+    "",
+    "💳 *Pembayaran bisa melalui:*",
+    "• Tunai di studio",
+    "• Transfer bank",
+    "• QRIS",
+    ...bankDetails,
+    "",
+    "Mohon lakukan pembayaran sebelum jatuh tempo, ya. Terima kasih 🙏",
+    `_${appSettings.name}_`
+  ].join("\n");
   return{student,message,url:whatsappPhoneUrl(student?.no_telepon,message),invoice};
 }
 window.openInvoiceReminder=id=>{
@@ -280,7 +314,7 @@ function showPaymentReceipt(payment){
   const receiptYear=payment.tanggal_bayar?.slice(0,4)||String(new Date().getFullYear());const receiptNumber=`KWT-${receiptYear}-${String(payment.id_pembayaran).padStart(4,"0")}`;
   const remaining=invoice?balance(invoice):0;
   const stampText=invoice&&remaining===0?"PAID / LUNAS":"PEMBAYARAN DITERIMA";
-  openModal(`<div class="receipt-actions no-print"><button class="secondary-btn" id="receiptClose">Tutup</button><button class="primary-btn" id="receiptPrint"><span aria-hidden="true">⎙</span> Cetak</button></div><article id="receiptPrintArea" class="receipt-paper"><header class="receipt-header"><span class="receipt-mark" aria-hidden="true">♫</span><h2 id="modalTitle">Salwa Music</h2><p>Administrasi Kursus Musik</p><p>Jl. Panembahan Senopati No. 45, Gondomanan, Yogyakarta</p><p>Telepon: 0812-3456-7890</p><h3>STRUK PEMBAYARAN</h3></header><section class="receipt-section"><h3>INFO TRANSAKSI</h3><div class="receipt-row"><span>No. Struk</span><strong>${receiptNumber}</strong></div><div class="receipt-row"><span>Tanggal</span><strong>${dateText(payment.tanggal_bayar)}</strong></div><div class="receipt-row"><span>Metode</span><strong>${esc(payment.metode||"-")}</strong></div><div class="receipt-row"><span>Referensi</span><strong>${esc(payment.referensi||"-")}</strong></div></section><section class="receipt-section"><h3>INFO SISWA</h3><div class="receipt-row"><span>Nama</span><strong>${esc(student?.nama_siswa||"Siswa tidak ditemukan")}</strong></div><div class="receipt-row"><span>Program</span><strong>${esc(program?.nama_program||"-")}</strong></div><div class="receipt-row"><span>No. Tagihan</span><strong>${invoiceNumber(payment.id_tagihan)}</strong></div></section><section class="receipt-section receipt-totals"><h3>RINCIAN</h3><div class="receipt-row"><span>Total Tagihan</span><strong>${rupiah(invoice?.jumlah_tagihan)}</strong></div><div class="receipt-row receipt-paid"><span>Jumlah Bayar</span><strong>${rupiah(payment.jumlah_bayar)}</strong></div><div class="receipt-row"><span>Sisa Tagihan</span><strong>${rupiah(remaining)}</strong></div></section><div class="receipt-approval"><div class="receipt-stamp" aria-label="${stampText}"><strong>SALWA MUSIC</strong><span>${stampText}</span></div><div class="receipt-signature"><span>Admin</span><strong class="receipt-signature-name">Admin Salwa Music</strong><div class="receipt-signature-line"></div><small>Tanda tangan / stempel</small></div></div><footer class="receipt-footer">Terima kasih telah melakukan pembayaran.<br>Salwa Music · Musik untuk semua</footer></article>`);
+  openModal(`<div class="receipt-actions no-print"><button class="secondary-btn" id="receiptClose">Tutup</button><button class="primary-btn" id="receiptPrint"><span aria-hidden="true">⎙</span> Cetak</button><button class="primary-btn" id="receiptWhatsApp"><span aria-hidden="true">↗</span> Kirim via WA</button></div><article id="receiptPrintArea" class="receipt-paper"><header class="receipt-header"><span class="receipt-mark" aria-hidden="true">♫</span><h2 id="modalTitle">Salwa Music</h2><p>Administrasi Kursus Musik</p><p>Jl. Panembahan Senopati No. 45, Gondomanan, Yogyakarta</p><p>Telepon: 0812-3456-7890</p><h3>STRUK PEMBAYARAN</h3></header><section class="receipt-section"><h3>INFO TRANSAKSI</h3><div class="receipt-row"><span>No. Struk</span><strong>${receiptNumber}</strong></div><div class="receipt-row"><span>Tanggal</span><strong>${dateText(payment.tanggal_bayar)}</strong></div><div class="receipt-row"><span>Metode</span><strong>${esc(payment.metode||"-")}</strong></div><div class="receipt-row"><span>Referensi</span><strong>${esc(payment.referensi||"-")}</strong></div></section><section class="receipt-section"><h3>INFO SISWA</h3><div class="receipt-row"><span>Nama</span><strong>${esc(student?.nama_siswa||"Siswa tidak ditemukan")}</strong></div><div class="receipt-row"><span>Program</span><strong>${esc(program?.nama_program||"-")}</strong></div><div class="receipt-row"><span>No. Tagihan</span><strong>${invoiceNumber(payment.id_tagihan)}</strong></div></section><section class="receipt-section receipt-totals"><h3>RINCIAN</h3><div class="receipt-row"><span>Total Tagihan</span><strong>${rupiah(invoice?.jumlah_tagihan)}</strong></div><div class="receipt-row receipt-paid"><span>Jumlah Bayar</span><strong>${rupiah(payment.jumlah_bayar)}</strong></div><div class="receipt-row"><span>Sisa Tagihan</span><strong>${rupiah(remaining)}</strong></div></section><div class="receipt-approval"><div class="receipt-stamp" aria-label="${stampText}"><strong>SALWA MUSIC</strong><span>${stampText}</span></div><div class="receipt-signature"><span>Admin</span><strong class="receipt-signature-name">Admin Salwa Music</strong><div class="receipt-signature-line"></div><small>Tanda tangan / stempel</small></div></div><footer class="receipt-footer">Terima kasih telah melakukan pembayaran.<br>Salwa Music · Musik untuk semua</footer></article>`);
   const approval=document.querySelector(".receipt-approval");
   const stamp=approval.querySelector(".receipt-stamp");
   const signature=approval.querySelector(".receipt-signature");
@@ -306,6 +340,66 @@ function showPaymentReceipt(payment){
   $("modalOverlay").querySelector(".modal-card").classList.add("receipt-modal");
   $("receiptPrint").onclick=()=>window.print();
   $("receiptClose").onclick=closeModal;
+  $("receiptWhatsApp").onclick=()=>sendReceiptViaWhatsApp({payment,invoice,student,program,receiptNumber});
+}
+function receiptMessage({student,program,payment,invoice,receiptNumber}){
+  const remaining=invoice?balance(invoice):0;
+  return [
+    `Struk ${receiptNumber}`,
+    `${student?.nama_siswa||"Siswa"} · ${program?.nama_program||"-"}`,
+    `Tanggal: ${dateText(payment.tanggal_bayar)}`,
+    `Jumlah bayar: ${rupiah(payment.jumlah_bayar)}${payment.metode?` (${payment.metode})`:""}`,
+    `Sisa tagihan: ${rupiah(remaining)}${remaining===0?" · Lunas":""}`,
+    `— ${appSettings.name}`
+  ].join("\n");
+}
+
+async function captureReceiptBlob(){
+  if(!window.html2canvas)throw new Error("Pustaka gambar struk belum termuat. Periksa koneksi lalu coba lagi.");
+  const area=$("receiptPrintArea");
+  const canvas=await html2canvas(area,{scale:2.5,backgroundColor:"#ffffff",useCORS:true,logging:false});
+  return await new Promise((resolve,reject)=>canvas.toBlob(blob=>blob?resolve(blob):reject(new Error("Gagal membuat gambar struk.")),"image/png"));
+}
+
+async function sendReceiptViaWhatsApp(context){
+  const button=$("receiptWhatsApp");const original=button.innerHTML;
+  button.disabled=true;button.innerHTML="Menyiapkan…";
+  try{
+    const blob=await captureReceiptBlob();
+    const fileName=`${context.receiptNumber}.png`;
+    const file=new File([blob],fileName,{type:"image/png"});
+    const message=receiptMessage(context);
+
+    // HP: share sheet native -> gambar struk ikut terlampir
+    if(navigator.share&&navigator.canShare?.({files:[file]})){
+      try{
+        await navigator.share({files:[file],text:message,title:`Struk ${context.receiptNumber}`});
+        toast("Pilih WhatsApp, lalu pilih kontak siswa.");
+        return;
+      }catch(error){
+        if(error?.name==="AbortError")return;
+      }
+    }
+
+    // Desktop: unduh PNG + buka chat WhatsApp
+    const objectUrl=URL.createObjectURL(blob);
+    const link=document.createElement("a");
+    link.href=objectUrl;link.download=fileName;
+    document.body.append(link);link.click();link.remove();
+    setTimeout(()=>URL.revokeObjectURL(objectUrl),4000);
+
+    const waUrl=whatsappPhoneUrl(context.student?.no_telepon,message);
+    if(waUrl){
+      window.open(waUrl,"_blank","noopener");
+      toast("Gambar struk diunduh. Lampirkan file itu di chat WhatsApp yang terbuka.");
+    }else{
+      toast("Gambar struk diunduh. Nomor WhatsApp siswa belum valid, buka chat manual.");
+    }
+  }catch(error){
+    toast(error?.message||"Struk tidak dapat dikirim.");
+  }finally{
+    button.disabled=false;button.innerHTML=original;
+  }
 }
 window.openPaymentReceipt=id=>{const payment=state.pembayaran.find(item=>item.id_pembayaran===Number(id));if(payment)showPaymentReceipt(payment)};
 
