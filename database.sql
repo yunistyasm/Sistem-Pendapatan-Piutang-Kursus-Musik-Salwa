@@ -221,8 +221,8 @@ CREATE POLICY demo_program_all ON public.program_kursus FOR ALL TO anon, authent
 CREATE POLICY demo_tagihan_all ON public.tagihan FOR ALL TO anon, authenticated USING (true) WITH CHECK (true);
 CREATE POLICY demo_pembayaran_all ON public.pembayaran FOR ALL TO anon, authenticated USING (true) WITH CHECK (true);
 
--- DATA DEMO: program, siswa, tagihan, dan pembayaran.
--- Dapat dijalankan ulang tanpa menggandakan data demo.
+-- SEED PROGRAM: pertahankan katalog enam program saat database disiapkan ulang.
+-- Siswa contoh tidak ditambahkan; nama siswa demo lama dibersihkan di bawah.
 BEGIN;
 
 -- Samakan nama program lama dengan katalog yang digunakan saat ini.
@@ -347,17 +347,43 @@ BEGIN
     END LOOP;
 END $$;
 
-INSERT INTO public.siswa (nama_siswa)
-SELECT demo.nama_siswa
-FROM (VALUES
-    ('Ahmad Fauzan'),
-    ('Bima Pratama'),
-    ('Dimas Saputra'),
-    ('Fajar Ramadhan'),
-    ('Rizky Maulana')
-) AS demo(nama_siswa)
-WHERE NOT EXISTS (
-    SELECT 1 FROM public.siswa WHERE nama_siswa = demo.nama_siswa
+-- Bersihkan nama siswa demo lama. Jangan menghapus siswa yang sudah memiliki
+-- tagihan, supaya riwayat keuangan tidak hilang tanpa pemeriksaan.
+DO $$
+DECLARE
+    siswa_terpakai TEXT;
+BEGIN
+    SELECT string_agg(format('%s (ID %s)', s.nama_siswa, s.id_siswa), ', ')
+    INTO siswa_terpakai
+    FROM public.siswa s
+    WHERE s.nama_siswa IN (
+        'Ahmad Fauzan',
+        'Bima Pratama',
+        'Dimas Saputra',
+        'Fajar Ramadhan',
+        'Rizky Maulana'
+    )
+    AND EXISTS (
+        SELECT 1 FROM public.tagihan t WHERE t.id_siswa = s.id_siswa
+    );
+
+    IF siswa_terpakai IS NOT NULL THEN
+        RAISE EXCEPTION
+            'Siswa demo masih memiliki tagihan dan tidak dihapus: %',
+            siswa_terpakai;
+    END IF;
+END $$;
+
+DELETE FROM public.siswa AS siswa
+WHERE siswa.nama_siswa IN (
+    'Ahmad Fauzan',
+    'Bima Pratama',
+    'Dimas Saputra',
+    'Fajar Ramadhan',
+    'Rizky Maulana'
+)
+AND NOT EXISTS (
+    SELECT 1 FROM public.tagihan t WHERE t.id_siswa = siswa.id_siswa
 );
 
 -- Hapus program lama di luar katalog demo, tetapi jangan menghapus program
