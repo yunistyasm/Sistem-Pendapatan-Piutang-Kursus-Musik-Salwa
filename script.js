@@ -232,14 +232,15 @@ function updateInvoiceSelection(visibleInvoices=state.tagihan){
 function whatsappPhoneUrl(phone,message){
   let digits=String(phone||"").replace(/\D/g,"");if(digits.startsWith("00"))digits=digits.slice(2);if(digits.startsWith("0"))digits=`62${digits.slice(1)}`;else if(digits.startsWith("8"))digits=`62${digits}`;
   if(digits.length<10)return null;
-  return `https://wa.me/${digits}?text=${encodeURIComponent(message)}`;
+  const query=new URLSearchParams({text:message});
+  return `https://wa.me/${digits}?${query.toString()}`;
 }
 function invoiceReminder(invoice){
   const student=state.siswa.find(item=>item.id_siswa===invoice.id_siswa);const program=state.program.find(item=>item.id_program===invoice.id_program);
   const totalPaid=paidAmount(invoice.id_tagihan);const remaining=balance(invoice);
   const bankDetails=appSettings.bank?[
     "",
-    "\u{1F3E6} *Transfer ke:*",
+    "*Transfer ke:*",
     appSettings.bank,
     appSettings.accountName?`a.n. ${appSettings.accountName}`:"",
     appSettings.accountNumber?`No. Rek: ${appSettings.accountNumber}`:""
@@ -248,27 +249,27 @@ function invoiceReminder(invoice){
     "*TAGIHAN KURSUS*",
     `_${appSettings.name}_`,
     "",
-    `Halo *${student?.nama_siswa||"Bapak/Ibu"}* \u{1F44B}`,
+    `Halo *${student?.nama_siswa||"Bapak/Ibu"}*,`,
     "Berikut rincian tagihan kursus Anda:",
     "",
-    `\u{1F4C4} No. Tagihan: ${invoiceNumber(invoice.id_tagihan)}`,
-    `\u{1F3B5} Program: ${program?.nama_program||"Program kursus"}`,
-    `\u{1F4C5} Periode: ${invoice.periode}`,
-    `\u{23F0} Jatuh Tempo: ${dateText(invoice.tanggal_jatuh_tempo)}`,
+    `No. Tagihan: ${invoiceNumber(invoice.id_tagihan)}`,
+    `Program: ${program?.nama_program||"Program kursus"}`,
+    `Periode: ${invoice.periode}`,
+    `Jatuh Tempo: ${dateText(invoice.tanggal_jatuh_tempo)}`,
     "",
-    "━━━━━━━━━━━━━━━",
-    `\u{1F4B0} Total Tagihan: ${rupiah(invoice.jumlah_tagihan)}`,
-    `\u{2705} Sudah Dibayar: ${rupiah(totalPaid)}`,
-    `\u{1F4CC} *Sisa Tagihan: ${rupiah(remaining)}*`,
-    "━━━━━━━━━━━━━━━",
+    "------------------------------",
+    `Total Tagihan: ${rupiah(invoice.jumlah_tagihan)}`,
+    `Sudah Dibayar: ${rupiah(totalPaid)}`,
+    `*Sisa Tagihan: ${rupiah(remaining)}*`,
+    "------------------------------",
     "",
-    "\u{1F4B3} *Pembayaran bisa melalui:*",
+    "*Pembayaran bisa melalui:*",
     "• Tunai di studio",
     "• Transfer bank",
     "• QRIS",
     ...bankDetails,
     "",
-    "Mohon lakukan pembayaran sebelum jatuh tempo, ya. Terima kasih \u{1F64F}",
+    "Mohon lakukan pembayaran sebelum jatuh tempo, ya. Terima kasih.",
     `_${appSettings.name}_`
   ].join("\n");
   return{student,message,url:whatsappPhoneUrl(student?.no_telepon,message),invoice};
